@@ -18,7 +18,7 @@ const (
 	pluginName    = "Devin Live Models"
 	pluginVersion = "1.0.0"
 	pluginAuthor  = "szxypi"
-	pluginRepo    = "https://github.com/szxypi/cpa-devin-live-models"
+	pluginRepo    = "https://github.com/iversongao5211-sketch/cpa-devin-live-models"
 )
 
 // Plugin holds the whole plugin state. All methods are safe to call from the
