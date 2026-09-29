@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "plugins": [
+    {
+      "id": "cpa-devin-live-models",
+      "name": "Devin Live Models",
+      "description": "周期性地通过 devin 账号调上游 GetCliModelConfigs，把 Cognition/Devin 最新发布的模型在几分钟内注册进 CPA 模型目录——无需等待上游策展 JSON 或重编二进制。",
+      "author": "szxypi",
+      "version": "1.0.0",
+      "release-tag": "v1.0.0",
+      "repository": "https://github.com/szxypi/cpa-devin-live-models",
+      "homepage": "https://github.com/szxypi/cpa-devin-live-models",
+      "license": "MIT",
+      "tags": ["Devin", "Models", "Catalog", "Management"],
+      "install": {
+        "type": "github-release",
+        "asset-pattern": "cpa-devin-live-models-v{version}.so"
+      },
+      "config": {
+        "enabled": true,
+        "poll-interval": "5m",
+        "fetch-timeout": "30s",
+        "accounts-per-poll": 3,
+        "propagate-on-change": true,
+        "emit-variants": true
+      }
+    }
+  ]
+}
