@@ -16,7 +16,7 @@ var embeddedBaselineJSON []byte
 const (
 	pluginID      = "cpa-devin-live-models"
 	pluginName    = "Devin Live Models"
-	pluginVersion = "1.0.0"
+	pluginVersion = "1.1.0"
 	pluginAuthor  = "szxypi"
 	pluginRepo    = "https://github.com/iversongao5211-sketch/cpa-devin-live-models"
 )
@@ -131,7 +131,7 @@ func (p *Plugin) HandleRegister(raw json.RawMessage) ([]byte, error) {
 	res := registrationResult{
 		SchemaVersion: schema,
 		Metadata:      p.metadata,
-		Capabilities:  capabilityResult{ModelProvider: true, ManagementAPI: true},
+		Capabilities:  capabilityResult{ModelProvider: true, ModelRouter: true, ManagementAPI: true},
 	}
 	return json.Marshal(res)
 }
@@ -154,6 +154,76 @@ func (p *Plugin) HandleModelStatic(raw json.RawMessage) ([]byte, error) {
 	models := p.catalogForWire(cfg)
 	models = p.applyHostExclusions(models, req.Host)
 	return json.Marshal(modelResponse{Provider: "devin", Models: models})
+}
+
+// HandleModelRoute covers model.route: rewrite bare devin/<base> requests to
+// the configured default effort variant when upstream offers it. Models that
+// already carry an effort suffix, non-devin models, and bases with no thinking
+// levels are left untouched (not-handled so the normal path runs).
+func (p *Plugin) HandleModelRoute(raw json.RawMessage) ([]byte, error) {
+	var req modelRouteRequest
+	_ = json.Unmarshal(raw, &req)
+
+	notHandled := func() ([]byte, error) {
+		return json.Marshal(modelRouteResponse{Handled: false})
+	}
+
+	cfg := p.currentConfig()
+	eff := strings.ToLower(strings.TrimSpace(cfg.DefaultEffort))
+	if !cfg.Enabled || eff == "" {
+		return notHandled()
+	}
+
+	model := strings.TrimSpace(req.RequestedModel)
+	if model == "" {
+		return notHandled()
+	}
+	// only devin/<base> requests
+	if !strings.HasPrefix(strings.ToLower(model), "devin/") {
+		return notHandled()
+	}
+	base := model[len("devin/"):]
+	if base == "" {
+		return notHandled()
+	}
+	// never override explicit effort/thinking suffixes
+	if hasDevinEffortSuffix(base) || strings.ContainsAny(base, ":()") {
+		return notHandled()
+	}
+	// need devin auths to actually serve the rewritten route
+	devinAvailable := false
+	for _, prov := range req.AvailableProviders {
+		if strings.EqualFold(prov, "devin") {
+			devinAvailable = true
+			break
+		}
+	}
+	if !devinAvailable {
+		return notHandled()
+	}
+	// only rewrite when the upstream catalog actually offers the target level
+	levels := p.store.levelsFor(base)
+	found := false
+	for _, l := range levels {
+		if strings.EqualFold(l, eff) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return notHandled()
+	}
+	target := "devin/" + base + "-" + eff
+	if strings.EqualFold(target, model) {
+		return notHandled()
+	}
+	return json.Marshal(modelRouteResponse{
+		Handled:     true,
+		TargetKind:  "provider",
+		Target:      "devin",
+		TargetModel: target,
+		Reason:      "effort-default",
+	})
 }
 
 // HandleModelForAuth covers model.for_auth: per-auth model set. The host

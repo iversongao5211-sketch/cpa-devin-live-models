@@ -184,6 +184,8 @@ func handleMethod(method string, raw []byte) ([]byte, error) {
 		out, err = p.HandleModelStatic(json.RawMessage(raw))
 	case "model.for_auth":
 		out, err = p.HandleModelForAuth(json.RawMessage(raw))
+	case "model.route":
+		out, err = p.HandleModelRoute(json.RawMessage(raw))
 	case "management.register":
 		out, err = p.HandleManagementRegister(json.RawMessage(raw))
 	case "management.handle":

@@ -19,6 +19,7 @@ type pluginConfig struct {
 	AccountsPerPoll   int      `yaml:"-"`
 	PropagateOnChange bool     `yaml:"-"`
 	EmitVariants      bool     `yaml:"-"`
+	DefaultEffort     string   `yaml:"-"`
 	CuratedURLs       []string `yaml:"-"`
 	ProxyURL          string   `yaml:"-"`
 	BaselineFile      string   `yaml:"-"`
@@ -38,6 +39,7 @@ func defaultConfig() pluginConfig {
 		AccountsPerPoll:   3,
 		PropagateOnChange: true,
 		EmitVariants:      true,
+		DefaultEffort:     "high",
 		CuratedURLs:       append([]string(nil), defaultCuratedURLs...),
 		Log:               true,
 	}
@@ -112,6 +114,9 @@ func parseConfig(raw []byte) pluginConfig {
 	}
 	cfg.PropagateOnChange = boolv(cfg.PropagateOnChange, "propagate-on-change", "propagate_on_change")
 	cfg.EmitVariants = boolv(cfg.EmitVariants, "emit-variants", "emit_variants")
+	if s, ok := str("default-effort", "default_effort"); ok {
+		cfg.DefaultEffort = s
+	}
 	cfg.Log = boolv(cfg.Log, "log")
 	if s, ok := str("proxy-url", "proxy_url"); ok {
 		cfg.ProxyURL = s

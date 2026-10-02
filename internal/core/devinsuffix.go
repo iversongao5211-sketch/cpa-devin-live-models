@@ -215,3 +215,29 @@ func isExcluded(modelID string, patterns []string) bool {
 	}
 	return false
 }
+
+// knownDevinSuffixes mirrors helps.knownDevinSuffixes — recognized effort
+// suffixes on upstream chat_model_uids (used to detect explicit-effort model
+// names the router must not rewrite).
+var knownDevinSuffixes = []string{
+	"-none", "-low", "-medium", "-high", "-xhigh", "-max",
+	"-fast", "-slow", "-priority",
+	"-low-priority", "-medium-priority", "-high-priority",
+	"-xhigh-priority", "-max-priority",
+	"-low-fast", "-medium-fast", "-high-fast", "-xhigh-fast",
+	"-max-fast", "-none-fast",
+	"-thinking-1m", "-thinking", "-max-1m", "-none-1m",
+	"_none", "_minimal", "_low", "_medium", "_high", "_xhigh", "_max", "_thinking",
+}
+
+// hasDevinEffortSuffix reports whether the model id already carries an
+// explicit effort suffix.
+func hasDevinEffortSuffix(model string) bool {
+	lower := strings.ToLower(strings.TrimSpace(model))
+	for _, s := range knownDevinSuffixes {
+		if strings.HasSuffix(lower, s) {
+			return true
+		}
+	}
+	return false
+}

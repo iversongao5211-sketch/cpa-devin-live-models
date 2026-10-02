@@ -1,9 +1,19 @@
 package core
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 )
+
+func mustJSON(v any) []byte {
+	b, _ := json.Marshal(v)
+	return b
+}
+
+func jsonUnmarshal(data []byte, v any) error {
+	return json.Unmarshal(data, v)
+}
 
 func TestSplitDevinUID(t *testing.T) {
 	cases := []struct{ uid, wantBase, wantEffort string }{
@@ -198,5 +208,42 @@ func TestHandleForAuthNeverEmpty(t *testing.T) {
 	}
 	if !strings.Contains(string(out), "devin/swe-") && !strings.Contains(string(out), "devin/") {
 		t.Errorf("for_auth response lacks models: %s", out[:200])
+	}
+}
+
+func TestModelRouteEffortRewrite(t *testing.T) {
+	p := NewPlugin(nil)
+	// seed a live catalog with a high-level model
+	p.store.applyLive([]rawDevinModel{
+		{UID: "opus-9-9", Label: "Opus 9.9", VendorID: 3, ContextLength: 1000},
+		{UID: "opus-9-9-high", Label: "Opus 9.9 High", VendorID: 3, ContextLength: 1000},
+	}, []string{"x"})
+
+	mk := func(model string) modelRouteRequest {
+		return modelRouteRequest{RequestedModel: model, AvailableProviders: []string{"devin", "codex"}}
+	}
+	must := func(req modelRouteRequest) modelRouteResponse {
+		out, err := p.HandleModelRoute(mustJSON(req))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var resp modelRouteResponse
+		if err := jsonUnmarshal(out, &resp); err != nil {
+			t.Fatal(err)
+		}
+		return resp
+	}
+
+	if r := must(mk("devin/opus-9-9")); !r.Handled || r.TargetModel != "devin/opus-9-9-high" {
+		t.Errorf("bare base should rewrite to -high, got %+v", r)
+	}
+	if r := must(mk("devin/opus-9-9-max")); r.Handled {
+		t.Error("explicit effort suffix must not be rewritten")
+	}
+	if r := must(mk("claude-opus-5-5")); r.Handled {
+		t.Error("non-devin model must not be rewritten")
+	}
+	if r := must(mk("devin/unknown-xyz")); r.Handled {
+		t.Error("unknown model without catalog levels must not be rewritten")
 	}
 }

@@ -183,3 +183,21 @@ func (s *catalogStore) status(enabled bool, emitVariant bool) statusSnapshot {
 		Upstream:     devinDefaultBaseURL + devinGetCliModelConfigsPath,
 	}
 }
+
+// levelsFor returns the thinking levels the merged catalog knows for a bare
+// devin base id ("" or "devin/"-prefixed).
+func (s *catalogStore) levelsFor(base string) []string {
+	key := strings.ToLower(strings.TrimSpace(base))
+	if !strings.HasPrefix(key, "devin/") {
+		key = "devin/" + key
+	}
+	for _, m := range s.snapshot() {
+		if m == nil {
+			continue
+		}
+		if strings.EqualFold(m.ID, key) && m.Thinking != nil {
+			return m.Thinking.Levels
+		}
+	}
+	return nil
+}

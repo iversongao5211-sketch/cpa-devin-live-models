@@ -78,6 +78,7 @@ type registrationResult struct {
 type capabilityResult struct {
 	ModelRegistrar bool `json:"model_registrar,omitempty"`
 	ModelProvider  bool `json:"model_provider,omitempty"`
+	ModelRouter    bool `json:"model_router,omitempty"`
 	ManagementAPI  bool `json:"management_api,omitempty"`
 }
 
@@ -228,4 +229,30 @@ func jsonManagementResponse(status int, v any) managementResponse {
 		Headers:    map[string][]string{"Content-Type": {"application/json; charset=utf-8"}},
 		Body:       raw,
 	}
+}
+
+// ---------------- model router (model.route) ----------------
+
+// modelRouteRequest mirrors pluginapi.ModelRouteRequest (wire = Go field names).
+type modelRouteRequest struct {
+	Plugin             pluginMetadata
+	PluginID           string
+	SourceFormat       string
+	RequestedModel     string
+	Stream             bool
+	Headers            map[string][]string
+	Query              map[string][]string
+	Body               []byte
+	Metadata           map[string]any
+	AvailableProviders []string
+	HostCallbackID     string `json:"host_callback_id"`
+}
+
+// modelRouteResponse mirrors pluginapi.ModelRouteResponse (wire = Go field names).
+type modelRouteResponse struct {
+	Handled     bool
+	TargetKind  string // "self" | "executor" | "provider"
+	Target      string
+	TargetModel string
+	Reason      string
 }
